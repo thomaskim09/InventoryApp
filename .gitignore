@@ -1,0 +1,15 @@
+# Maven
+target/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Local database
+inventory.db
+
+# Other
+*.log
+
+.mvn/
