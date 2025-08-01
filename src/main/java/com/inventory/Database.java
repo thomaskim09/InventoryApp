@@ -22,7 +22,9 @@ public class Database {
     public static void createNewDatabase() {
         try (Connection conn = getConnection()) {
             if (conn != null) {
-                System.out.println("A new database has been created.");
+                // This message can be removed in production
+                // System.out.println("A new database has been created or connection
+                // established.");
             }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -38,9 +40,26 @@ public class Database {
                 + ");";
 
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-            System.out.println("Inventory table has been created.");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    // New method to create the suppliers table
+    public static void createSuppliersTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS suppliers (\n"
+                + " id integer PRIMARY KEY AUTOINCREMENT,\n"
+                + " name text NOT NULL,\n"
+                + " contact_person text,\n"
+                + " email text,\n"
+                + " phone text\n"
+                + ");";
+
+        try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
