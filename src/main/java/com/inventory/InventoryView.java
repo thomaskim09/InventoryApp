@@ -3,75 +3,138 @@ package com.inventory;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
-import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class InventoryController {
+public class InventoryView {
 
-    @FXML
-    private TableView<Item> tableView;
-    @FXML
-    private TableColumn<Item, Integer> idColumn;
-    @FXML
-    private TableColumn<Item, String> nameColumn;
-    @FXML
-    private TableColumn<Item, Integer> quantityColumn;
-    @FXML
-    private TableColumn<Item, Double> priceColumn;
-
-    @FXML
-    private TextField nameInput;
-    @FXML
-    private TextField quantityInput;
-    @FXML
-    private TextField priceInput;
-    @FXML
-    private TextField searchInput;
+    private TableView<Item> tableView = new TableView<>();
+    private TextField nameInput = new TextField();
+    private TextField quantityInput = new TextField();
+    private TextField priceInput = new TextField();
+    private TextField searchInput = new TextField();
 
     private ObservableList<Item> itemList = FXCollections.observableArrayList();
     private FilteredList<Item> filteredData;
 
-    @FXML
-    public void initialize() {
-        // Setup table columns
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
-        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-        quantityColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
-        priceColumn.setCellValueFactory(new PropertyValueFactory<>("price"));
+    public VBox getView() {
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10));
+        root.getStyleClass().add("root");
+
+        // Search Bar
+        HBox searchBox = new HBox(10);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        searchInput.setPromptText("Enter item name...");
+        HBox.setHgrow(searchInput, Priority.ALWAYS);
+        searchBox.getChildren().addAll(new Label("Search by Name:"), searchInput);
+
+        // Table
+        setupTable();
+
+        // Details Pane
+        VBox detailsPane = createDetailsPane();
+
+        SplitPane splitPane = new SplitPane();
+        splitPane.getItems().addAll(tableView, detailsPane);
+        splitPane.setDividerPositions(0.6);
+        VBox.setVgrow(splitPane, Priority.ALWAYS);
+
+        root.getChildren().addAll(searchBox, splitPane);
 
         loadData();
+        setupFiltering();
+        setupSelectionListener();
 
-        // Setup filtered list for search functionality
+        return root;
+    }
+
+    private void setupTable() {
+        TableColumn<Item, Integer> idColumn = new TableColumn<>("ID");
+        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+        idColumn.setPrefWidth(75);
+
+        TableColumn<Item, String> nameColumn = new TableColumn<>("Name");
+        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        nameColumn.setPrefWidth(200);
+
+        TableColumn<Item, Integer> quantityColumn = new TableColumn<>("Quantity");
+        quantityColumn.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+        quantityColumn.setPrefWidth(100);
+
+        TableColumn<Item, Double> priceColumn = new TableColumn<>("Price");
+        priceColumn.setCellValueFactory(new PropertyValueFactory<>("price"));
+        priceColumn.setPrefWidth(100);
+
+        tableView.getColumns().addAll(idColumn, nameColumn, quantityColumn, priceColumn);
+    }
+
+    private VBox createDetailsPane() {
+        VBox detailsBox = new VBox(20);
+        detailsBox.setPadding(new Insets(10));
+
+        Label detailsTitle = new Label("Item Details");
+        detailsTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+
+        nameInput.setPromptText("Name");
+        quantityInput.setPromptText("Quantity");
+        priceInput.setPromptText("Price");
+
+        grid.add(new Label("Name"), 0, 0);
+        grid.add(nameInput, 1, 0);
+        grid.add(new Label("Quantity"), 0, 1);
+        grid.add(quantityInput, 1, 1);
+        grid.add(new Label("Price"), 0, 2);
+        grid.add(priceInput, 1, 2);
+
+        // Buttons
+        HBox buttonBox = new HBox(10);
+        buttonBox.setAlignment(Pos.CENTER);
+        Button newButton = new Button("New");
+        newButton.setOnAction(e -> handleNewItem());
+        Button saveButton = new Button("Save");
+        saveButton.setOnAction(e -> handleSaveItem());
+        Button deleteButton = new Button("Delete");
+        deleteButton.setOnAction(e -> handleDeleteItem());
+        buttonBox.getChildren().addAll(newButton, saveButton, deleteButton);
+
+        detailsBox.getChildren().addAll(detailsTitle, grid, buttonBox);
+        return detailsBox;
+    }
+
+    private void setupFiltering() {
         filteredData = new FilteredList<>(itemList, p -> true);
-        searchInput.textProperty().addListener((obs, oldVal, newVal) -> filterData(newVal));
+        searchInput.textProperty().addListener((obs, oldVal, newVal) -> {
+            filteredData.setPredicate(item -> {
+                if (newVal == null || newVal.isEmpty()) {
+                    return true;
+                }
+                String lowerCaseFilter = newVal.toLowerCase();
+                return item.getName().toLowerCase().contains(lowerCaseFilter);
+            });
+        });
         tableView.setItems(filteredData);
+    }
 
-        // Add listener for table selection
+    private void setupSelectionListener() {
         tableView.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldSelection, newSelection) -> {
                     if (newSelection != null) {
                         populateItemDetails(newSelection);
                     }
                 });
-    }
-
-    private void filterData(String searchText) {
-        filteredData.setPredicate(item -> {
-            if (searchText == null || searchText.isEmpty()) {
-                return true;
-            }
-            String lowerCaseFilter = searchText.toLowerCase();
-            return item.getName().toLowerCase().contains(lowerCaseFilter);
-        });
     }
 
     private void populateItemDetails(Item item) {
@@ -81,11 +144,6 @@ public class InventoryController {
     }
 
     private void loadData() {
-        int selectedId = -1;
-        if (tableView.getSelectionModel().getSelectedItem() != null) {
-            selectedId = tableView.getSelectionModel().getSelectedItem().getId();
-        }
-
         itemList.clear();
         String sql = "SELECT * FROM inventory";
 
@@ -103,27 +161,16 @@ public class InventoryController {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
-
-        // Re-select the previously selected item
-        int finalSelectedId = selectedId;
-        tableView.getItems().stream()
-                .filter(item -> item.getId() == finalSelectedId)
-                .findFirst()
-                .ifPresent(item -> tableView.getSelectionModel().select(item));
     }
 
-    @FXML
     private void handleNewItem() {
         clearFields();
         tableView.getSelectionModel().clearSelection();
         nameInput.requestFocus();
     }
 
-    @FXML
     private void handleSaveItem() {
-        // If an item is selected, it's an update. Otherwise, it's an addition.
         Item selectedItem = tableView.getSelectionModel().getSelectedItem();
-
         if (selectedItem == null) {
             handleAddItem();
         } else {
@@ -145,7 +192,6 @@ public class InventoryController {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
-
         loadData();
         clearFields();
     }
@@ -165,11 +211,9 @@ public class InventoryController {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
-
         loadData();
     }
 
-    @FXML
     private void handleDeleteItem() {
         Item selectedItem = tableView.getSelectionModel().getSelectedItem();
         if (selectedItem != null) {
@@ -194,7 +238,6 @@ public class InventoryController {
             showAlert("Validation Error", "Name field cannot be empty.");
             return false;
         }
-
         try {
             int quantity = Integer.parseInt(quantityInput.getText());
             double price = Double.parseDouble(priceInput.getText());

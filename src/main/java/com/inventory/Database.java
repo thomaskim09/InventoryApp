@@ -7,12 +7,14 @@ import java.sql.Statement;
 
 public class Database {
 
-    private static final String DB_URL = "jdbc:sqlite:inventory.db";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/inventory_db";
+    private static final String USER = "root";
+    private static final String PASS = "";
 
     public static Connection getConnection() {
         Connection conn = null;
         try {
-            conn = DriverManager.getConnection(DB_URL);
+            conn = DriverManager.getConnection(DB_URL, USER, PASS);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -20,23 +22,18 @@ public class Database {
     }
 
     public static void createNewDatabase() {
-        try (Connection conn = getConnection()) {
-            if (conn != null) {
-                // This message can be removed in production
-                // System.out.println("A new database has been created or connection
-                // established.");
-            }
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
+        // This method is no longer needed for MySQL in the same way,
+        // but we can use it to ensure the tables exist.
+        createInventoryTable();
+        createSuppliersTable();
     }
 
     public static void createInventoryTable() {
         String sql = "CREATE TABLE IF NOT EXISTS inventory (\n"
-                + " id integer PRIMARY KEY AUTOINCREMENT,\n"
-                + " name text NOT NULL,\n"
-                + " quantity integer NOT NULL,\n"
-                + " price real NOT NULL\n"
+                + " id INT PRIMARY KEY AUTO_INCREMENT,\n"
+                + " name VARCHAR(255) NOT NULL,\n"
+                + " quantity INT NOT NULL,\n"
+                + " price DOUBLE NOT NULL\n"
                 + ");";
 
         try (Connection conn = getConnection();
@@ -47,14 +44,13 @@ public class Database {
         }
     }
 
-    // New method to create the suppliers table
     public static void createSuppliersTable() {
         String sql = "CREATE TABLE IF NOT EXISTS suppliers (\n"
-                + " id integer PRIMARY KEY AUTOINCREMENT,\n"
-                + " name text NOT NULL,\n"
-                + " contact_person text,\n"
-                + " email text,\n"
-                + " phone text\n"
+                + " id INT PRIMARY KEY AUTO_INCREMENT,\n"
+                + " name VARCHAR(255) NOT NULL,\n"
+                + " contact_person VARCHAR(255),\n"
+                + " email VARCHAR(255),\n"
+                + " phone VARCHAR(255)\n"
                 + ");";
 
         try (Connection conn = getConnection();

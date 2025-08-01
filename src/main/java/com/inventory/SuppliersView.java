@@ -2,59 +2,113 @@ package com.inventory;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class SupplierController {
+public class SuppliersView {
 
-    // Table and Columns
-    @FXML
-    private TableView<Supplier> tableView;
-    @FXML
-    private TableColumn<Supplier, Integer> idColumn;
-    @FXML
-    private TableColumn<Supplier, String> nameColumn;
-    @FXML
-    private TableColumn<Supplier, String> contactColumn;
-    @FXML
-    private TableColumn<Supplier, String> emailColumn;
-    @FXML
-    private TableColumn<Supplier, String> phoneColumn;
-
-    // Form Fields
-    @FXML
-    private TextField nameInput;
-    @FXML
-    private TextField contactInput;
-    @FXML
-    private TextField emailInput;
-    @FXML
-    private TextField phoneInput;
+    private TableView<Supplier> tableView = new TableView<>();
+    private TextField nameInput = new TextField();
+    private TextField contactInput = new TextField();
+    private TextField emailInput = new TextField();
+    private TextField phoneInput = new TextField();
 
     private ObservableList<Supplier> supplierList = FXCollections.observableArrayList();
 
-    @FXML
-    public void initialize() {
-        // Setup table columns
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
-        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-        contactColumn.setCellValueFactory(new PropertyValueFactory<>("contactPerson"));
-        emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
-        phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
+    public VBox getView() {
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10));
+        root.getStyleClass().add("root");
+
+        // Table
+        setupTable();
+
+        // Details Pane
+        VBox detailsPane = createDetailsPane();
+
+        SplitPane splitPane = new SplitPane();
+        splitPane.getItems().addAll(tableView, detailsPane);
+        splitPane.setDividerPositions(0.6);
+
+        root.getChildren().add(splitPane);
 
         loadData();
-        tableView.setItems(supplierList);
+        setupSelectionListener();
 
-        // Add listener for table selection
+        return root;
+    }
+
+    private void setupTable() {
+        TableColumn<Supplier, Integer> idColumn = new TableColumn<>("ID");
+        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+
+        TableColumn<Supplier, String> nameColumn = new TableColumn<>("Name");
+        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+
+        TableColumn<Supplier, String> contactColumn = new TableColumn<>("Contact Person");
+        contactColumn.setCellValueFactory(new PropertyValueFactory<>("contactPerson"));
+
+        TableColumn<Supplier, String> emailColumn = new TableColumn<>("Email");
+        emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
+
+        TableColumn<Supplier, String> phoneColumn = new TableColumn<>("Phone");
+        phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
+
+        tableView.getColumns().addAll(idColumn, nameColumn, contactColumn, emailColumn, phoneColumn);
+        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.setItems(supplierList);
+    }
+
+    private VBox createDetailsPane() {
+        VBox detailsBox = new VBox(20);
+        detailsBox.setPadding(new Insets(10));
+
+        Label detailsTitle = new Label("Supplier Details");
+        detailsTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+
+        nameInput.setPromptText("Supplier Name");
+        contactInput.setPromptText("Contact Person");
+        emailInput.setPromptText("Email Address");
+        phoneInput.setPromptText("Phone Number");
+
+        grid.add(new Label("Name"), 0, 0);
+        grid.add(nameInput, 1, 0);
+        grid.add(new Label("Contact"), 0, 1);
+        grid.add(contactInput, 1, 1);
+        grid.add(new Label("Email"), 0, 2);
+        grid.add(emailInput, 1, 2);
+        grid.add(new Label("Phone"), 0, 3);
+        grid.add(phoneInput, 1, 3);
+
+        HBox buttonBox = new HBox(10);
+        buttonBox.setAlignment(Pos.CENTER);
+        Button newButton = new Button("New");
+        newButton.setOnAction(e -> handleNewSupplier());
+        Button saveButton = new Button("Save");
+        saveButton.setOnAction(e -> handleSaveSupplier());
+        Button deleteButton = new Button("Delete");
+        deleteButton.setOnAction(e -> handleDeleteSupplier());
+        buttonBox.getChildren().addAll(newButton, saveButton, deleteButton);
+
+        detailsBox.getChildren().addAll(detailsTitle, grid, buttonBox);
+        return detailsBox;
+    }
+
+    private void setupSelectionListener() {
         tableView.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldSelection, newSelection) -> {
                     if (newSelection != null) {
@@ -64,11 +118,6 @@ public class SupplierController {
     }
 
     private void loadData() {
-        int selectedId = -1;
-        if (tableView.getSelectionModel().getSelectedItem() != null) {
-            selectedId = tableView.getSelectionModel().getSelectedItem().getId();
-        }
-
         supplierList.clear();
         String sql = "SELECT * FROM suppliers";
 
@@ -87,13 +136,6 @@ public class SupplierController {
         } catch (SQLException e) {
             System.out.println("Database Error on loading suppliers: " + e.getMessage());
         }
-
-        // Re-select the previously selected item
-        int finalSelectedId = selectedId;
-        tableView.getItems().stream()
-                .filter(supplier -> supplier.getId() == finalSelectedId)
-                .findFirst()
-                .ifPresent(supplier -> tableView.getSelectionModel().select(supplier));
     }
 
     private void populateSupplierDetails(Supplier supplier) {
@@ -103,14 +145,12 @@ public class SupplierController {
         phoneInput.setText(supplier.getPhone());
     }
 
-    @FXML
     private void handleNewSupplier() {
         clearFields();
         tableView.getSelectionModel().clearSelection();
         nameInput.requestFocus();
     }
 
-    @FXML
     private void handleSaveSupplier() {
         Supplier selectedSupplier = tableView.getSelectionModel().getSelectedItem();
         if (selectedSupplier == null) {
@@ -135,7 +175,6 @@ public class SupplierController {
         } catch (SQLException e) {
             System.out.println("Database Error on adding supplier: " + e.getMessage());
         }
-
         loadData();
         clearFields();
     }
@@ -156,11 +195,9 @@ public class SupplierController {
         } catch (SQLException e) {
             System.out.println("Database Error on updating supplier: " + e.getMessage());
         }
-
         loadData();
     }
 
-    @FXML
     private void handleDeleteSupplier() {
         Supplier selectedSupplier = tableView.getSelectionModel().getSelectedItem();
         if (selectedSupplier != null) {
@@ -185,7 +222,6 @@ public class SupplierController {
             showAlert("Validation Error", "Supplier name cannot be empty.");
             return false;
         }
-        // Can add more validation here (e.g., email format)
         return true;
     }
 
