@@ -33,12 +33,13 @@ Before you begin, ensure you have the following installed:
 
 ```bash
 mvn clean javafx:run
-java -jar target/InventoryApp-1.0-SNAPSHOT.jar
 ```
 
 To package the software into a installable exe.
 
 ```bash
+mvn clean package
+java -jar target/InventoryApp-1.0-SNAPSHOT.jar
 jpackage --name InventoryApp --input target/ --main-jar InventoryApp-1.0-SNAPSHOT.jar --main-class com.inventory.Launcher --type exe
 ```
 

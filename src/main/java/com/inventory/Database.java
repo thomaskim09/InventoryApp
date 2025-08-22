@@ -7,7 +7,9 @@ import java.sql.Statement;
 
 public class Database {
 
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/inventory_db";
+    private static final String DB_HOST = "jdbc:mysql://localhost:3306/";
+    private static final String DB_NAME = "inventory_db";
+    private static final String DB_URL = DB_HOST + DB_NAME;
     private static final String USER = "root";
     private static final String PASS = "";
 
@@ -16,8 +18,12 @@ public class Database {
     }
 
     public static void createNewDatabase() {
-        // This method is no longer needed for MySQL in the same way,
-        // but we can use it to ensure the tables exist.
+        try (Connection conn = DriverManager.getConnection(DB_HOST, USER, PASS);
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + DB_NAME);
+        } catch (SQLException e) {
+            System.out.println("Error creating database: " + e.getMessage());
+        }
         createInventoryTable();
         createSuppliersTable();
     }
