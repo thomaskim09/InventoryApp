@@ -1,17 +1,33 @@
 package com.inventory;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 
 public class App extends Application {
 
     @Override
     public void start(Stage stage) {
         // Create database and tables on startup
-        Database.createNewDatabase();
+        try {
+            Connection conn = Database.getConnection();
+            if (conn == null) {
+                throw new SQLException("Failed to connect to the database.");
+            }
+            Database.createNewDatabase();
+        } catch (SQLException e) {
+            showAlert("Database Connection Error",
+                    "Could not connect to the database. Please ensure Laragon is running and the database is accessible.");
+            Platform.exit();
+            return;
+        }
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
@@ -46,6 +62,14 @@ public class App extends Application {
         stage.setTitle("Inventory Management System");
         stage.setScene(scene);
         stage.show();
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     public static void main(String[] args) {

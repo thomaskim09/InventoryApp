@@ -11,14 +11,8 @@ public class Database {
     private static final String USER = "root";
     private static final String PASS = "";
 
-    public static Connection getConnection() {
-        Connection conn = null;
-        try {
-            conn = DriverManager.getConnection(DB_URL, USER, PASS);
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return conn;
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(DB_URL, USER, PASS);
     }
 
     public static void createNewDatabase() {
