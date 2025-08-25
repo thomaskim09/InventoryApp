@@ -17,13 +17,17 @@ import java.sql.SQLException;
 
 public class SuppliersView {
 
-    private TableView<Supplier> tableView = new TableView<>();
-    private TextField nameInput = new TextField();
-    private TextField contactInput = new TextField();
-    private TextField emailInput = new TextField();
-    private TextField phoneInput = new TextField();
+    private final TableView<Supplier> tableView = new TableView<>();
+    private final TextField nameInput = new TextField();
+    private final TextField contactInput = new TextField();
+    private final TextField emailInput = new TextField();
+    private final TextField phoneInput = new TextField();
 
-    private ObservableList<Supplier> supplierList = FXCollections.observableArrayList();
+    private final Button newButton = new Button("Clear");
+    private final Button saveButton = new Button("Save");
+    private final Button deleteButton = new Button("Delete");
+
+    private final ObservableList<Supplier> supplierList = FXCollections.observableArrayList();
 
     public VBox getView() {
         VBox root = new VBox(10);
@@ -44,6 +48,8 @@ public class SuppliersView {
 
         loadData();
         setupSelectionListener();
+        setupButtonListeners();
+        updateButtonStates();
 
         return root;
     }
@@ -72,6 +78,7 @@ public class SuppliersView {
     private VBox createDetailsPane() {
         VBox detailsBox = new VBox(20);
         detailsBox.setPadding(new Insets(10));
+        detailsBox.getStyleClass().add("details-pane");
 
         Label detailsTitle = new Label("Supplier Details");
         detailsTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
@@ -96,12 +103,6 @@ public class SuppliersView {
 
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
-        Button newButton = new Button("New");
-        newButton.setOnAction(e -> handleNewSupplier());
-        Button saveButton = new Button("Save");
-        saveButton.setOnAction(e -> handleSaveSupplier());
-        Button deleteButton = new Button("Delete");
-        deleteButton.setOnAction(e -> handleDeleteSupplier());
         buttonBox.getChildren().addAll(newButton, saveButton, deleteButton);
 
         detailsBox.getChildren().addAll(detailsTitle, grid, buttonBox);
@@ -114,7 +115,32 @@ public class SuppliersView {
                     if (newSelection != null) {
                         populateSupplierDetails(newSelection);
                     }
+                    updateButtonStates();
                 });
+    }
+
+    private void setupButtonListeners() {
+        newButton.setOnAction(e -> handleNewSupplier());
+        saveButton.setOnAction(e -> handleSaveSupplier());
+        deleteButton.setOnAction(e -> handleDeleteSupplier());
+
+        // Add listeners to text fields to update button states
+        nameInput.textProperty().addListener((obs, oldVal, newVal) -> updateButtonStates());
+        contactInput.textProperty().addListener((obs, oldVal, newVal) -> updateButtonStates());
+        emailInput.textProperty().addListener((obs, oldVal, newVal) -> updateButtonStates());
+        phoneInput.textProperty().addListener((obs, oldVal, newVal) -> updateButtonStates());
+    }
+
+    private void updateButtonStates() {
+        boolean hasText = !nameInput.getText().trim().isEmpty() ||
+                !contactInput.getText().trim().isEmpty() ||
+                !emailInput.getText().trim().isEmpty() ||
+                !phoneInput.getText().trim().isEmpty();
+        boolean isItemSelected = tableView.getSelectionModel().getSelectedItem() != null;
+
+        newButton.setDisable(!hasText);
+        deleteButton.setDisable(!isItemSelected);
+        saveButton.setDisable(nameInput.getText().trim().isEmpty());
     }
 
     private void loadData() {
@@ -230,6 +256,7 @@ public class SuppliersView {
         contactInput.clear();
         emailInput.clear();
         phoneInput.clear();
+        updateButtonStates();
     }
 
     private void showAlert(String title, String message) {

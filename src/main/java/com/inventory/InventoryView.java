@@ -1,5 +1,6 @@
 package com.inventory;
 
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -16,13 +17,17 @@ import java.sql.SQLException;
 
 public class InventoryView {
 
-    private TableView<Item> tableView = new TableView<>();
-    private TextField nameInput = new TextField();
-    private TextField quantityInput = new TextField();
-    private TextField priceInput = new TextField();
-    private TextField searchInput = new TextField();
+    private final TableView<Item> tableView = new TableView<>();
+    private final TextField nameInput = new TextField();
+    private final TextField quantityInput = new TextField();
+    private final TextField priceInput = new TextField();
+    private final TextField searchInput = new TextField();
 
-    private ObservableList<Item> itemList = FXCollections.observableArrayList();
+    private final Button newButton = new Button("Clear");
+    private final Button saveButton = new Button("Save");
+    private final Button deleteButton = new Button("Delete");
+
+    private final ObservableList<Item> itemList = FXCollections.observableArrayList();
     private FilteredList<Item> filteredData;
 
     public VBox getView() {
@@ -53,6 +58,8 @@ public class InventoryView {
         loadData();
         setupFiltering();
         setupSelectionListener();
+        setupButtonListeners();
+        updateButtonStates();
 
         return root;
     }
@@ -80,6 +87,7 @@ public class InventoryView {
     private VBox createDetailsPane() {
         VBox detailsBox = new VBox(20);
         detailsBox.setPadding(new Insets(10));
+        detailsBox.getStyleClass().add("details-pane");
 
         Label detailsTitle = new Label("Item Details");
         detailsTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
@@ -102,12 +110,6 @@ public class InventoryView {
         // Buttons
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
-        Button newButton = new Button("New");
-        newButton.setOnAction(e -> handleNewItem());
-        Button saveButton = new Button("Save");
-        saveButton.setOnAction(e -> handleSaveItem());
-        Button deleteButton = new Button("Delete");
-        deleteButton.setOnAction(e -> handleDeleteItem());
         buttonBox.getChildren().addAll(newButton, saveButton, deleteButton);
 
         detailsBox.getChildren().addAll(detailsTitle, grid, buttonBox);
@@ -134,7 +136,30 @@ public class InventoryView {
                     if (newSelection != null) {
                         populateItemDetails(newSelection);
                     }
+                    updateButtonStates();
                 });
+    }
+
+    private void setupButtonListeners() {
+        newButton.setOnAction(e -> handleNewItem());
+        saveButton.setOnAction(e -> handleSaveItem());
+        deleteButton.setOnAction(e -> handleDeleteItem());
+
+        // Add listeners to text fields to update button states
+        nameInput.textProperty().addListener((obs, oldVal, newVal) -> updateButtonStates());
+        quantityInput.textProperty().addListener((obs, oldVal, newVal) -> updateButtonStates());
+        priceInput.textProperty().addListener((obs, oldVal, newVal) -> updateButtonStates());
+    }
+
+    private void updateButtonStates() {
+        boolean hasText = !nameInput.getText().trim().isEmpty() ||
+                !quantityInput.getText().trim().isEmpty() ||
+                !priceInput.getText().trim().isEmpty();
+        boolean isItemSelected = tableView.getSelectionModel().getSelectedItem() != null;
+
+        newButton.setDisable(!hasText);
+        deleteButton.setDisable(!isItemSelected);
+        saveButton.setDisable(nameInput.getText().trim().isEmpty());
     }
 
     private void populateItemDetails(Item item) {
@@ -256,6 +281,7 @@ public class InventoryView {
         nameInput.clear();
         quantityInput.clear();
         priceInput.clear();
+        updateButtonStates();
     }
 
     private void showAlert(String title, String message) {
